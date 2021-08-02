@@ -8,8 +8,8 @@ export function typeOf(t, e) {
  * @param  {...(object|array)} args - 待合并的数组或者对象
  * @param  {boolean} args[args.length-1] - 是否返回新对象。参数列表的最后一个参数
  * @returns {object|array} 返回参数的第一个对象，如果设置为返回新对象，则会先复制再返回。
+ * TODO amo 循环结构处理
  */
-// TODO amo 优化，不使用递归
 export function merge(...args) {
   let returnNew = args[args.length - 1];
   if (typeof returnNew === "object") {
@@ -23,34 +23,54 @@ export function merge(...args) {
   }, null);
 
   function mergeCore(a, b) {
-    if (b) {
-      let ta, tb = typeOf(b);
-      if (!a) {
-        if (tb === "Object") {
-          a = {};
-        } else if (tb === "Array") {
-          a = [];
-        }
-      }
-      ta = typeOf(a);
-      if (ta === tb) {
-        let aItem;
-        if (returnNew) {
-          a = ta === "Object" ? Object.assign({}, a) : a.slice();
-        }
-        each(b, (bItem, k) => {
-          aItem = a[k];
-          let ta = typeOf(aItem),
-            tb = typeOf(bItem);
-          if (ta === tb && (ta === "Array" || ta === "Object")) {
-            a[k] = mergeCore(aItem, bItem);
-          }else {
-            a[k] = bItem;
+    const rv = {
+      v: a
+    };
+    const pool = [
+      [a, b, rv, "v"]
+    ];
+    // 使用循环代替递归
+    while (pool.length) {
+
+      let [a, b, c, d] = pool[0]; // c-待赋值的对象 d-待赋值的键
+
+      if (b) {
+        let ta, tb = typeOf(b);
+        if (!a) {
+          if (tb === "Object") {
+            a = {};
+          } else if (tb === "Array") {
+            a = [];
           }
-        });
+        }
+        ta = typeOf(a);
+        if (VV(ta, tb)) {
+          let aItem;
+          if (returnNew) {
+            a = ta === "Object" ? Object.assign({}, a) : a.slice();
+          }
+          each(b, (bItem, k) => {
+            aItem = a[k];
+            let ta = typeOf(aItem),
+              tb = typeOf(bItem);
+            if (VV(ta, tb)) {
+              pool.push([aItem, bItem, a, k]);
+            } else {
+              a[k] = bItem;
+            }
+          });
+          c[d] = a;
+        }
       }
+
+      pool.shift();
     }
-    return a;
+
+    return rv.v;
+
+    function VV(ta, tb) {
+      return ta === tb && (ta === "Array" || ta === "Object");
+    }
   }
 }
 

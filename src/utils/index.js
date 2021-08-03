@@ -12,11 +12,13 @@ export function typeOf(t, e) {
  */
 export function merge(...args) {
   let returnNew = args[args.length - 1];
+
   if (typeof returnNew === "object") {
     returnNew = false;
   } else {
     args.splice(-1, 1);
   }
+
   return args.reduce((a, b) => {
     // 此处判断的作用是将 args 的第一个有效值做为 reduce 的第二参数，且过滤空值
     return a ? mergeCore(a, b) : b;
@@ -67,7 +69,7 @@ export function merge(...args) {
     }
 
     return rv.v;
-
+    // verify value
     function VV(ta, tb) {
       return ta === tb && (ta === "Array" || ta === "Object");
     }
@@ -89,4 +91,8 @@ export function each(target, cb) {
       }
     }
   }
+}
+
+export function errorMsg(msg) {
+  console.error(msg);
 }

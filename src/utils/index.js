@@ -96,3 +96,31 @@ export function each(target, cb) {
 export function errorMsg(msg) {
   console.error(msg);
 }
+
+export function toUpperCase(s) {
+  return s && s.toUpperCase ? s.toUpperCase() : "";
+}
+
+export function toLowerCase(s) {
+  return s && s.toLowerCase ? s.toLowerCase() : "";
+}
+
+export function qs(target) {
+  let arr = [];
+  if (typeOf(target, "Object")) {
+    for (const k in target) {
+      arr.push(k + "=" + target[k]);
+    }
+  }
+  return target = arr.join("&");
+}
+
+export function toFormData(target) {
+  let fd = new FormData();
+  if (typeOf(target, "Object")) {
+    for (const k in target) {
+      fd.append(k, target[k]);
+    }
+  }
+  return fd;
+}

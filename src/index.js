@@ -1,6 +1,7 @@
-// import 'regenerator-runtime/runtime';
 import AxiosExpand from "./axios-expand.js";
-if (window) {
+
+if (typeof window !== "undefined") {
   window.AxiosExpand = AxiosExpand;
 }
+
 export default AxiosExpand;

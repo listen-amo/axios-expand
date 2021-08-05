@@ -20,6 +20,7 @@ export default class AxiosExpand extends Axios {
   constructor(options) {
     super(merge(defaults, AxiosExpand.defaults, options, true));
     this._initApis();
+    this.api = this._api.bind(this);
   }
 
   static defaults = {};
@@ -36,7 +37,7 @@ export default class AxiosExpand extends Axios {
   /**
    * 
    */
-  api(options, params) {
+  _api(options, params) {
     options = this._formatApiOptions(options);
     if (options) {
       return this.request(options, params);
@@ -245,7 +246,7 @@ export default class AxiosExpand extends Axios {
     if (params) {
       switch (toUpperCase(_options.method)) {
         case "POST":
-          _options.data = params;
+          _options.data = typeOf(_options.data, "Object") && typeOf(params, "Object") ? merge(_options.data, params) : params;
           break;
         default:
           if (typeOf(params, "Object")) {

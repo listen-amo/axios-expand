@@ -6,7 +6,8 @@ import {
   toUpperCase,
   toLowerCase,
   qs,
-  toFormData
+  toFormData,
+  isValue
 } from "./utils";
 
 const defaults = {
@@ -20,7 +21,7 @@ export default class AxiosExpand extends Axios {
   constructor(options) {
     super(merge(defaults, AxiosExpand.defaults, options, true));
     this._initApis();
-    this.api = this._api.bind(this);
+    this._bind();
   }
 
   static defaults = {};
@@ -34,13 +35,26 @@ export default class AxiosExpand extends Axios {
     delete this.defaults.apis;
   }
 
+  _bind() {
+    this.request = this._request.bind(this);
+    this.api = this._api.bind(this);
+  }
+
   /**
+   * 通过查找请求配置列表发起请求
+   * @param {Object|String} options - 请求配置参数
+   * 1. 为Object时基本等同 request 的配置参数。唯一新增了一个"api"字段表示请求配置列表的键。
+   * 2. 为String时则为请求配置列表的键。
+   * 3. 为String时如果请求配置列表中无法找到则尝试把其直接解析为请求路径
    * 
+   * @param {String} options.api - 请求配置列表的键。
+   * 
+   * @param params - 请求参数。等同 request 的 params 参数
    */
   _api(options, params) {
     options = this._formatApiOptions(options);
     if (options) {
-      return this.request(options, params);
+      return this._request(options, params);
     } else {
       errorMsg("api \"" + options + "\" is not found.");
     }
@@ -129,15 +143,25 @@ export default class AxiosExpand extends Axios {
    * 2. 参数为前一个处理器处理完的 response
    * 3. 其他特性同上
    * 
+   * @param {Function} options.errorIntercept - 错误拦截器
+   * 1. 用于处理响应正确，但是业务上请求错误的逻辑。
+   * 2. 返回一个布尔值，为true表示响应异常。会直接 throw response;
+   * 3. 如此产生的错误会在 response 对象上新增一个 $fromErrorIntercept: true 的属性用于判断
+   * 
+   * @param {Function} options.transformInstance - 实例转换处理函数
+   * 1. 参数为原始请求的Promise实例
+   * 2. 如果返回了非undfined和null的值，则会用此值生成新的实例替换原本的Promise实例
+   * 3. 没有返回值的情况下只会在原本的实例上增加处理函数
+   * 
    * @param {*} params - 请求参数（GET请求）或请求数据（POST请求）。
    * 1. 如果是请求参数则会和 options.params 进行合并
-   * 2. 如果是请求数据则直接覆盖 options.data
+   * 2. 如果是请求数据则会判断options.data 和 params 的类型后决定是和合并还是覆盖
    * 
    * @param {String} method - 请求方法
    * 
    * @returns {Promise}
    */
-  request(options, params, method) {
+  _request(options, params, method) {
 
     options = this._formatRequestOptions(options, params, method);
 
@@ -199,6 +223,30 @@ export default class AxiosExpand extends Axios {
         res = options.after(res) || res;
         return res;
       })
+    }
+
+    // errorIntercept
+    if (typeOf(options.errorIntercept, "Function")) {
+      RP = RP.then(res => {
+        if (options.errorIntercept(res)) {
+          res.$fromErrorIntercept = true;
+          throw res;
+        }
+        return res;
+      });
+    }
+
+    // transformInstance
+    if (typeOf(options.transformInstance, "Function")) {
+      let rv = options.transformInstance(RP);
+      if (isValue(rv)) {
+        if (!typeOf(rv, "Promise")) {
+          rv = Promise.resolve(rv);
+        }
+      } else {
+        rv = RP;
+      }
+      RP = rv;
     }
 
     return RP;

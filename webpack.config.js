@@ -1,6 +1,10 @@
 module.exports = {
   mode: "development",
   entry: "./src/index.js",
+  output: {
+    path: __dirname + "/dist",
+    filename: "axios-expand.js"
+  },
   module: {
     rules: [{
       test: /\.js$/,

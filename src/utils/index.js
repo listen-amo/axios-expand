@@ -124,3 +124,7 @@ export function toFormData(target) {
   }
   return fd;
 }
+
+export function isValue(v) {
+  return v || v === 0 || v === "";
+}

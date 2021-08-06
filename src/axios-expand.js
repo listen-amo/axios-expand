@@ -1,4 +1,4 @@
-import Axios from "axios/lib/core/Axios";
+import Axios from "axios/lib/core/Axios.js";
 import {
   merge,
   typeOf,
@@ -8,7 +8,7 @@ import {
   qs,
   toFormData,
   isValue
-} from "./utils";
+} from "./utils/index.js";
 
 const defaults = {
   responseType: "json",

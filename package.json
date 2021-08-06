@@ -2,19 +2,21 @@
   "name": "axios-expand",
   "version": "1.0.0",
   "description": "axios增强",
-  "main": "src/index.js",
+  "main": "dist/axios-expand.js",
+  "module": "dist/axios-expand.module.js",
   "scripts": {
     "dev": "webpack --watch",
-    "build": "webpack --mode=production",
+    "build": "npm run build:commonjs && npm run build:module",
+    "build:commonjs": "webpack --config=./commonjs.webpack.config.js",
+    "build:module": "webpack --config=./module.webpack.config.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "axios": "^0.21.1",
-    "core-js": "^3.16.0"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "axios": "^0.21.1",
+    "core-js": "^3.16.0",
     "@babel/core": "^7.14.8",
     "@babel/preset-env": "^7.14.9",
     "babel-loader": "^8.2.2",

@@ -1,11 +1,13 @@
 const base = require("./base.webpack.config");
 const { merge } = require('webpack-merge');
 module.exports = merge(base, {
-  mode: "development",
+  experiments: {
+    outputModule: true,
+  },
   output: {
+    filename: "axios-expand.module.js",
     library: {
-      name: "AxiosExpand",
-      type: "window",
+      type: "module"
     }
   },
 })

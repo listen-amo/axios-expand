@@ -16,6 +16,8 @@ const defaults = {
   pathParamsReg: /:([^\/?#]+)/g
 }
 
+const regCTJson = /application\/json/;
+
 export default class AxiosExpand extends Axios {
 
   constructor(options) {
@@ -52,11 +54,11 @@ export default class AxiosExpand extends Axios {
    * @param params - 请求参数。等同 request 的 params 参数
    */
   _api(options, params) {
-    options = this._formatApiOptions(options);
-    if (options) {
-      return this._request(options, params);
+    let options_ = this._formatApiOptions(options);
+    if (options_) {
+      return this._request(options_, params);
     } else {
-      errorMsg("api \"" + options + "\" is not found.");
+      return Promise.reject("api \"" + options + "\" is not found.");
     }
   }
 
@@ -204,6 +206,16 @@ export default class AxiosExpand extends Axios {
       this._setCatch(options, RP);
     }
 
+    // json数据转换
+    RP = RP.then(res => {
+      if (regCTJson.test(res.headers["content-type"])) {
+        try {
+          res.data = JSON.parse(res.data);
+        } catch (err) { }
+      }
+      return res;
+    });
+
     // transformAfter
     if (typeOf(options.transformAfter, "Array")) {
       RP = RP.then(res => {
@@ -214,7 +226,7 @@ export default class AxiosExpand extends Axios {
           }
         });
         return res;
-      })
+      });
     }
 
     // after

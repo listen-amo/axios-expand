@@ -10,61 +10,50 @@ export function typeOf(t, e) {
  * @returns {object|array} 返回参数的第一个对象，如果设置为返回新对象，则会先复制再返回。
  * TODO amo 循环结构处理
  */
-export function merge(...args) {
-  let returnNew = args[args.length - 1];
+ export function merge(...args) {
+  let returnNew = args[args.length - 1],
+    initData;
 
   if (typeof returnNew === "object") {
-    returnNew = false;
+    returnNew = true;
   } else {
     args.splice(-1, 1);
   }
 
+  args = args.filter((item) => typeof item === "object");
+  initData = args.splice(0, 1)[0];
+
+  if (returnNew) {
+    initData = copy(initData);
+  }
+
   return args.reduce((a, b) => {
-    // 此处判断的作用是将 args 的第一个有效值做为 reduce 的第二参数，且过滤空值
-    return a ? mergeCore(a, b) : b;
-  }, null);
+    return mergeCore(a, b);
+  }, initData);
 
   function mergeCore(a, b) {
     const rv = {
-      v: a
+      v: a,
     };
-    const pool = [
-      [a, b, rv, "v"]
-    ];
+    const pool = [[a, b, rv, "v"]];
     // 使用循环代替递归
     while (pool.length) {
-
       let [a, b, c, d] = pool[0]; // c-待赋值的对象 d-待赋值的键
-
-      if (b) {
-        let ta, tb = typeOf(b);
-        if (!a) {
-          if (tb === "Object") {
-            a = {};
-          } else if (tb === "Array") {
-            a = [];
-          }
-        }
-        ta = typeOf(a);
+      let aItem;
+      each(b, (bItem, k) => {
+        aItem = a[k];
+        let ta = typeOf(aItem),
+          tb = typeOf(bItem);
         if (VV(ta, tb)) {
-          let aItem;
-          if (returnNew) {
-            a = ta === "Object" ? Object.assign({}, a) : a.slice();
+          pool.push([aItem, bItem, a, k]);
+        } else {
+          if (returnNew && (tb === "Object" || tb === "Array")) {
+            bItem = copy(bItem);
           }
-          each(b, (bItem, k) => {
-            aItem = a[k];
-            let ta = typeOf(aItem),
-              tb = typeOf(bItem);
-            if (VV(ta, tb)) {
-              pool.push([aItem, bItem, a, k]);
-            } else {
-              a[k] = bItem;
-            }
-          });
-          c[d] = a;
+          Object.defineProperty(a, k, Object.getOwnPropertyDescriptor(b, k));
         }
-      }
-
+      });
+      c[d] = a;
       pool.shift();
     }
 
@@ -74,6 +63,56 @@ export function merge(...args) {
       return ta === tb && (ta === "Array" || ta === "Object");
     }
   }
+}
+/**
+ * 深度复制数组或者对象
+ * @param {*} target 
+ * @returns 
+ */
+export function copy(target) {
+  // 非对象和数组直接返回原始值
+  const targetType = typeOf(target);
+  if (targetType !== "Object" || targetType !== "Array") {
+    return targetType;
+  }
+
+  let item = {
+    target,
+  };
+  const pool = [
+    {
+      parent: item,
+      target,
+      key: "target",
+    },
+  ];
+  let newTarget, current, typeItem, isTypeTargetObject;
+  while (pool.length) {
+    current = pool[0];
+    isTypeTargetObject = typeOf(current.target, "Object");
+    newTarget = isTypeTargetObject ? {} : [];
+    each(current.target, (item, k) => {
+      typeItem = typeOf(item);
+      if (typeItem === "Object" || typeItem === "Array") {
+        pool.push({
+          parent: newTarget,
+          target: item,
+          key: k,
+        });
+      } else if (isTypeTargetObject) {
+        Object.defineProperty(
+          newTarget,
+          k,
+          Object.getOwnPropertyDescriptor(current.target, k)
+        );
+      } else {
+        newTarget[k] = item;
+      }
+    });
+    current.parent[current.key] = newTarget;
+    pool.shift();
+  }
+  return item.target;
 }
 
 export function each(target, cb) {

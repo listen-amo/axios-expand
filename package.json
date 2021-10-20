@@ -1,6 +1,6 @@
 {
   "name": "axios-expand",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "axios增强",
   "main": "dist/axios-expand.js",
   "module": "dist/axios-expand.module.js",

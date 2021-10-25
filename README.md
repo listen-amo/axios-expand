@@ -3,6 +3,10 @@
 *2021-10-25*
 - 修复模块导出错误的bug
 - 修复merge函数以及copy函数逻辑错误导致的报错
+- 优化配置参数
+    - **优化了`before` `after` `transformInstance`参数。多个配置来源都设置了这些参数的时候会依次全部调用**
+    - 删除了`transformBefore`参数。使用`before`参数代替
+    - 删除了`transformAfter`参数。使用`after`参数代替
 
 ## 简介
 
@@ -15,44 +19,40 @@
 ```js
 /**
    * 基于axios.request方法的二次封装。
-   * 
+   *
    * @param {Object|String} options - 完整请求配置参数或请求的地址。
    * 1. 完整包含axios的原生配置
    * 2. 配置有多个来源且会进行合并。可能的来源和合并优先级：AxiosExpand.defaults < AxiosExpand(options) <  apisConfig < api(options)。
-   * 
+   *
    * @param {*|Function} options.local - 本地数据。
    * 1. 设置此参数后会跳过请求，直接resolve此参数设置的数据。
    * 2. 设置一个函数则返回此函数的调用结果
-   * 
+   *
    * @param {Boolean} options.cache - 启用缓存数据。
    * 1. 此次请求会优先从缓存中查找，没有则正常请求，并存入缓存。
-   * 
-   * @param {Function} options.before - 选项最终合并完成后，发起请求前的回调函数。
+   *
+   * @param {Array<Function>|Function} options.before - 选项最终合并完成后，发起请求前的回调函数。
    * 1. 可以用于每次请求前动态的调整各项参数
    * 2. 参数为最终合并完成的 options
    * 3. 可以直接修改options。也可以返回一个新的options。
-   * 
-   * @param {Array} options.transformBefore - 选项最终合并完成后，发起请求前的回调函数的数组。
-   * 1. 一般设置到全局的参数中，用于需要全局处理的转换。before为针对当前请求的转换。
-   * 2. 参数为前一个处理器处理完的 options
-   * 3. 其他特性同上
-   * 
+   * 4. 多个配置来源的参数会自动合并依次调用
+   *
    * @param {Function} options.url - 请求路径。新增了路径参数替换功能。
    * 例：
    *  转换前：
    *    路径：/api/data/:id
-   *    参数：{ id: 10  }  
+   *    参数：{ id: 10  }
    *  转换后：
    *    路径：/api/data/10
-   *    参数：{  }  
-   * 
+   *    参数：{  }
+   *
    * @param {Function} options.pathParamsReg - 请求路径替换正则。默认值：/:([^\/?#]+)/g
-   * 
+   *
    * @param {Function} [options.requestType=json] - 请求类型。默认值：json
    * 1. 会自动设置对应的 Content-Type 请求头类型
    * 2. 会自动格式化对应的数据格式
    * 3. 目前可选值：
-   *  json: 
+   *  json:
    *    Content-Type=application/json
    *    格式处理：json -> 无
    *  form:
@@ -61,35 +61,32 @@
    *  form-url:
    *    Content-Type=application/x-www-form-urlencoded
    *    格式处理：json -> queryString
-   * 
-   * @param {Function} options.after - 请求完成后的回调函数。
+   *
+   * @param {Array<Function>|Function} options.after - 请求完成后的回调函数。
    * 1. 参数为响应的 response
    * 2. 可以用于在数据在实际使用前对数据进行处理
    * 3. 可以直接修改 response。也可以返回一个新的 response。
-   * 
-   * @param {Array} options.transformAfter - 请求完成后的回调函数的数组。
-   * 1. 一般设置到全局的参数中，用于需要全局处理的转换。after为针对当前请求的转换。
-   * 2. 参数为前一个处理器处理完的 response
-   * 3. 其他特性同上
-   * 
+   * 4. 多个配置来源的参数会自动合并依次调用
+   *
    * @param {Function} options.errorIntercept - 错误拦截器
    * 1. 用于处理响应正确，但是业务上请求错误的逻辑。
    * 2. 返回一个布尔值，为true表示响应异常。会直接 throw response;
    * 3. 如此产生的错误会在 response 对象上新增一个 $fromErrorIntercept: true 的属性用于判断
-   * 
-   * @param {Function} options.transformInstance - 实例转换处理函数
+   *
+   * @param {Array<Function>|Function} options.transformInstance - 实例转换处理函数
    * 1. 参数为原始请求的Promise实例
    * 2. 如果返回了非undfined和null的值，则会用此值生成新的实例替换原本的Promise实例
    * 3. 没有返回值的情况下只会在原本的实例上增加处理函数
-   * 
+   * 4. 多个配置来源的参数会自动合并依次调用
+   *
    * @param {*} params - 请求参数（GET请求）或请求数据（POST请求）。
    * 1. 如果是请求参数则会和 options.params 进行合并
    * 2. 如果是请求数据则会判断options.data 和 params 的类型后决定是和合并还是覆盖
-   * 
+   *
    * @param {String} method - 请求方法
-   * 
+   *
    * @returns {Promise}
-*/
+   */
 
   _request(options, params, method) {....}
 ```
@@ -251,7 +248,7 @@ const AE = new AxiosExpand({
             method: "POST"
         }
     },
-    transformAfter: [function(res){
+    after: [function(res){
     	res.$data = res.data.data || {};
 	}],
     errorIntercept(res){

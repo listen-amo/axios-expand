@@ -4,32 +4,54 @@ export function typeOf(t, e) {
   return e ? type === e : type;
 }
 /**
+ * 合并对象指定的字段为数组
+ * @param  {...object} items - 待合并的对象
+ * @param  {array} fields - 需要进行合并的字段
+ * @returns {object} 返回一个合并后的新对象。只包含需要合并的字段
+ */
+export function mergeFieldToArray(items, fields = []) {
+
+  items = items.filter((item) => item && typeOf(item, "Object"));
+
+  function mergeCore(a, b) {
+    fields.forEach(function (field) {
+      if (!a[field]) {
+        a[field] = [];
+      }
+      if (b[field] !== undefined) {
+        a[field] = a[field].concat(b[field]);
+      }
+    });
+    return a;
+  }
+
+  return items.reduce(mergeCore, {});
+}
+/**
  * 合并数组或者对象
  * @param  {...(object|array)} args - 待合并的数组或者对象
  * @param  {boolean} args[args.length-1] - 是否返回新对象。参数列表的最后一个参数
  * @returns {object|array} 返回参数的第一个对象，如果设置为返回新对象，则会先复制再返回。
  * TODO amo 循环结构处理
  */
- export function merge(...args) {
+export function merge(...args) {
   let returnNew = args[args.length - 1],
     initData;
 
-  if (typeof returnNew === "object") {
-    returnNew = true;
-  } else {
+  if (typeOf(returnNew, "Boolean")) {
     args.splice(-1, 1);
+  } else {
+    returnNew = true;
   }
 
-  args = args.filter((item) => typeof item === "object");
+  args = args.filter((item) => item && typeof item === "object");
   initData = args.splice(0, 1)[0];
 
   if (returnNew) {
     initData = copy(initData);
   }
 
-  return args.reduce((a, b) => {
-    return mergeCore(a, b);
-  }, initData);
+  return args.reduce(mergeCore, initData);
 
   function mergeCore(a, b) {
     const rv = {
@@ -66,8 +88,8 @@ export function typeOf(t, e) {
 }
 /**
  * 深度复制数组或者对象
- * @param {*} target 
- * @returns 
+ * @param {*} target
+ * @returns
  */
 export function copy(target) {
   // 非对象和数组直接返回原始值
@@ -151,7 +173,7 @@ export function qs(target) {
       arr.push(k + "=" + target[k]);
     }
   }
-  return target = arr.join("&");
+  return arr.join("&");
 }
 
 export function toFormData(target) {

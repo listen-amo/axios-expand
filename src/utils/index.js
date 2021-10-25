@@ -50,7 +50,7 @@ export function typeOf(t, e) {
           if (returnNew && (tb === "Object" || tb === "Array")) {
             bItem = copy(bItem);
           }
-          Object.defineProperty(a, k, Object.getOwnPropertyDescriptor(b, k));
+          a[k] = bItem;
         }
       });
       c[d] = a;
@@ -72,8 +72,8 @@ export function typeOf(t, e) {
 export function copy(target) {
   // 非对象和数组直接返回原始值
   const targetType = typeOf(target);
-  if (targetType !== "Object" || targetType !== "Array") {
-    return targetType;
+  if (targetType !== "Object" && targetType !== "Array") {
+    return target;
   }
 
   let item = {

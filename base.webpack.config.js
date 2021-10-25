@@ -5,24 +5,31 @@ module.exports = {
     path: __dirname + "/dist",
     filename: "axios-expand.js",
     library: {
-      export: 'default',
-    }
+      // export: "default",
+    },
   },
   module: {
-    rules: [{
-      test: /\.js$/,
-      use: [{
-        loader: "babel-loader",
-        options: {
-          presets: [[
-            '@babel/preset-env', {
-              targets: '> 1%',
-              useBuiltIns: "usage",
-              corejs: 3
-            }
-          ]]
-        }
-      }]
-    }]
-  }
-}
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: "babel-loader",
+            options: {
+              presets: [
+                [
+                  "@babel/preset-env",
+                  {
+                    targets: "> 1%",
+                    useBuiltIns: "usage",
+                    corejs: 3,
+                  },
+                ],
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+};

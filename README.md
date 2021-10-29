@@ -1,5 +1,9 @@
 ## 更新说明
 
+*2021-10-29*
+- 移除`pathParamsReg`参数新增`pathParam`参数。需要自定义路径参数解析使用`before`参数实现
+- 修复某些情况下误报 option.url 参数未设置的bug
+- 优化`requestType`参数的设置逻辑
 *2021-10-25*
 - 修复模块导出错误的bug
 - 修复merge函数以及copy函数逻辑错误导致的报错
@@ -46,7 +50,7 @@
    *    路径：/api/data/10
    *    参数：{  }
    *
-   * @param {Function} options.pathParamsReg - 请求路径替换正则。默认值：/:([^\/?#]+)/g
+   * @param {Function} options.pathParam - 是否开启路径参数替换
    *
    * @param {Function} [options.requestType=json] - 请求类型。默认值：json
    * 1. 会自动设置对应的 Content-Type 请求头类型

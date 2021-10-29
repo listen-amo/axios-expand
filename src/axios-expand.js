@@ -14,10 +14,12 @@ import {
 const defaults = {
   responseType: "json",
   requestType: "json",
-  pathParamsReg: /:([^\/?#]+)/g,
+  pathParam: true,
 };
 
-const regCTJson = /application\/json/;
+const regCTJson = /application\/json/, // content-type=json
+  regIsPath = /\//, // 判断是否为一个请求路径 TODO amo
+  regPathParam =  /(\/):([^\/?#]+)/g;
 
 // 参数需要为数组的字段
 const optionsArrayFileds = ["before", "after", "transformInstance"];
@@ -78,17 +80,22 @@ export default class AxiosExpand extends Axios {
         };
       }
       apiOptions = this._apis[options.api];
-      if (!apiOptions && /\//.test(options.api)) {
-        apiOptions = {
-          url: options.api,
-        };
+      if (apiOptions) {
+        if (typeOf(apiOptions, "String")) {
+          apiOptions = {
+            url: apiOptions,
+          };
+        }
+      } else {
+        if (regIsPath.test(options.api)) {
+          apiOptions = {
+            url: options.api,
+          };
+        } else if (!options.url) {
+          options = undefined;
+        }
       }
-      if (typeOf(apiOptions, "String")) {
-        apiOptions = {
-          url: apiOptions,
-        };
-      }
-      delete options.api;
+      options && delete options.api
     }
     return mergeOptions(apiOptions, options);
   }
@@ -122,7 +129,7 @@ export default class AxiosExpand extends Axios {
    *    路径：/api/data/10
    *    参数：{  }
    *
-   * @param {Function} options.pathParamsReg - 请求路径替换正则。默认值：/:([^\/?#]+)/g
+   * @param {Function} options.pathParam - 是否开启路径参数替换
    *
    * @param {Function} [options.requestType=json] - 请求类型。默认值：json
    * 1. 会自动设置对应的 Content-Type 请求头类型
@@ -175,7 +182,9 @@ export default class AxiosExpand extends Axios {
 
     // url
     if (options.url) {
-      options.url = this._pathParams(options);
+      if (options.pathParam) {
+        options.url = this._pathParams(options);
+      }
     } else {
       errorMsg("options.url is required.");
       return Promise.reject(null);
@@ -246,20 +255,20 @@ export default class AxiosExpand extends Axios {
     return RP;
   }
 
-  _pathParams({ url, params, data, pathParamsReg }) {
+  _pathParams({ url, params, data }) {
     if (params || data) {
-      url = url.replace(pathParamsReg, function (rv, $1) {
+      url = url.replace(regPathParam, function (rv, $1, $2) {
         let target;
-        if (params && $1 in params) {
+        if (params && $2 in params) {
           target = params;
-        } else if (data && $1 in data) {
+        } else if (data && $2 in data) {
           target = data;
         }
         if (target) {
-          rv = target[$1];
-          delete target[$1];
+          rv = target[$2];
+          delete target[$2];
         }
-        return rv;
+        return $1 + rv;
       });
     }
     return url;
@@ -293,20 +302,21 @@ export default class AxiosExpand extends Axios {
           break;
       }
     }
-    if (_options.requestType && _options.data) {
-      let contentType, data;
+    if (_options.requestType) {
+      let contentType,
+        data = _options.data;
       switch (toLowerCase(_options.requestType)) {
         case "form-url":
           contentType = "application/x-www-form-urlencoded;charset=utf-8";
-          data = qs(_options.data);
+          data = data && qs(data);
           break;
         case "form":
           contentType = "multipart/form-data;charset=utf-8";
-          data = toFormData(_options.data);
+          data = data && toFormData(data);
           break;
         case "json":
           contentType = "application/json;charset=utf-8";
-          data = JSON.stringify(_options.data);
+          data = data && JSON.stringify(data);
           break;
       }
       if (contentType) {
@@ -315,7 +325,7 @@ export default class AxiosExpand extends Axios {
             "Content-Type": contentType,
           },
           _options.headers,
-          true
+          false
         );
       }
       if (data) {

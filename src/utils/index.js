@@ -10,7 +10,6 @@ export function typeOf(t, e) {
  * @returns {object} 返回一个合并后的新对象。只包含需要合并的字段
  */
 export function mergeFieldToArray(items, fields = []) {
-
   items = items.filter((item) => item && typeOf(item, "Object"));
 
   function mergeCore(a, b) {
@@ -25,7 +24,7 @@ export function mergeFieldToArray(items, fields = []) {
     return a;
   }
 
-  return items.reduce(mergeCore, {});
+  return items.length ? items.reduce(mergeCore, {}) : undefined;
 }
 /**
  * 合并数组或者对象

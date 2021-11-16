@@ -19,7 +19,7 @@ const defaults = {
 
 const regCTJson = /application\/json/, // content-type=json
   regIsPath = /\//, // 判断是否为一个请求路径 TODO amo
-  regPathParam =  /(\/):([^\/?#]+)/g;
+  regPathParam = /(\/):([^\/?#]+)/g;
 
 // 参数需要为数组的字段
 const optionsArrayFileds = ["before", "after", "transformInstance"];
@@ -95,7 +95,6 @@ export default class AxiosExpand extends Axios {
           options = undefined;
         }
       }
-      options && delete options.api
     }
     return mergeOptions(apiOptions, options);
   }
@@ -119,6 +118,7 @@ export default class AxiosExpand extends Axios {
    * 2. 参数为最终合并完成的 options
    * 3. 可以直接修改options。也可以返回一个新的options。
    * 4. 多个配置来源的参数会自动合并依次调用
+   * 5. 可以通过返回 false 来中止请求
    *
    * @param {Function} options.url - 请求路径。新增了路径参数替换功能。
    * 例：
@@ -175,9 +175,22 @@ export default class AxiosExpand extends Axios {
 
     // before
     if (options.before.length) {
-      options.before.forEach(function (handler) {
-        options = handler(options) || options;
-      });
+      for (const handler of options.before) {
+        const result = handler(options);
+        if (result === false) {
+          return Promise.reject({
+            msg: "request cancel.",
+            $fromRequestCancel: true,
+          });
+        } else {
+          options = typeOf(result, "Object") ? result : options;
+        }
+      }
+    }
+
+    // requestType
+    if (options.requestType) {
+      options = this._transformData(options);
     }
 
     // url
@@ -216,16 +229,6 @@ export default class AxiosExpand extends Axios {
       return res;
     });
 
-    // after
-    if (options.after.length) {
-      RP = RP.then((res) => {
-        options.after.forEach(function (handler) {
-          res = handler(res) || res;
-        });
-        return res;
-      });
-    }
-
     // errorIntercept
     if (typeOf(options.errorIntercept, "Function")) {
       RP = RP.then((res) => {
@@ -252,6 +255,16 @@ export default class AxiosExpand extends Axios {
       }, RP);
     }
 
+    // after
+    if (options.after.length) {
+      RP = RP.then((res) => {
+        options.after.forEach(function (handler) {
+          res = handler(res) || res;
+        });
+        return res;
+      });
+    }
+
     return RP;
   }
 
@@ -274,6 +287,7 @@ export default class AxiosExpand extends Axios {
     return url;
   }
 
+  // 格式化 统一参数
   _formatRequestOptions(options, params, method) {
     if (typeOf(options, "String")) {
       options = {
@@ -302,38 +316,41 @@ export default class AxiosExpand extends Axios {
           break;
       }
     }
-    if (_options.requestType) {
-      let contentType,
-        data = _options.data;
-      switch (toLowerCase(_options.requestType)) {
-        case "form-url":
-          contentType = "application/x-www-form-urlencoded;charset=utf-8";
-          data = data && qs(data);
-          break;
-        case "form":
-          contentType = "multipart/form-data;charset=utf-8";
-          data = data && toFormData(data);
-          break;
-        case "json":
-          contentType = "application/json;charset=utf-8";
-          data = data && JSON.stringify(data);
-          break;
-      }
-      if (contentType) {
-        _options.headers = merge(
-          {
-            "Content-Type": contentType,
-          },
-          _options.headers,
-          false
-        );
-      }
-      if (data) {
-        _options.data = data;
-      }
-    }
 
     return _options;
+  }
+
+  // 转换 data 为requestType对应的格式
+  _transformData(options) {
+    let contentType,
+      data = options.originalData = options.data;
+    switch (toLowerCase(options.requestType)) {
+      case "form-url":
+        contentType = "application/x-www-form-urlencoded;charset=utf-8";
+        data = data && qs(data);
+        break;
+      case "form":
+        contentType = "multipart/form-data;charset=utf-8";
+        data = data && toFormData(data);
+        break;
+      case "json":
+        contentType = "application/json;charset=utf-8";
+        data = data && JSON.stringify(data);
+        break;
+    }
+    if (contentType) {
+      options.headers = merge(
+        {
+          "Content-Type": contentType,
+        },
+        options.headers,
+        false
+      );
+    }
+    if (data) {
+      options.data = data;
+    }
+    return options;
   }
 
   // 根据options的关键数据生成一个对应的id

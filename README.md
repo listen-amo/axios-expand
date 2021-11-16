@@ -1,10 +1,20 @@
 ## 更新说明
 
+*2021-11-16*
+
+- 新增：`before` 处理函数返回 `false` 会中止当前请求
+- 新增：保留了 `requestType` 参数转换前的原始 data 。可以在 `after`  `transformInstance` 等处理函数的响应结果的配置的 `originalData` 字段拿到
+- 优化：`requestType` 参数的转换逻辑放在 `before` 执行之后。也就是说能够在 `before` 中直接拿到转换前的参数
+- 优化：`after` 处理函数执行顺序放到了 `errorIntercept` 和 `transformInstance` 之后。避免发生异常时依然能够进到 `after` 处理函数中
+
 *2021-10-29*
+
 - 移除`pathParamsReg`参数新增`pathParam`参数。需要自定义路径参数解析使用`before`参数实现
 - 修复某些情况下误报 option.url 参数未设置的bug
 - 优化`requestType`参数的设置逻辑
+
 *2021-10-25*
+
 - 修复模块导出错误的bug
 - 修复merge函数以及copy函数逻辑错误导致的报错
 - 优化配置参数
@@ -40,6 +50,7 @@
    * 2. 参数为最终合并完成的 options
    * 3. 可以直接修改options。也可以返回一个新的options。
    * 4. 多个配置来源的参数会自动合并依次调用
+   * 5. 可以通过返回 false 来中止请求
    *
    * @param {Function} options.url - 请求路径。新增了路径参数替换功能。
    * 例：

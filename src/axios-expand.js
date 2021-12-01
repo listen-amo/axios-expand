@@ -18,7 +18,6 @@ const defaults = {
 };
 
 const regCTJson = /application\/json/, // content-type=json
-  regIsPath = /\//, // 判断是否为一个请求路径 TODO amo
   regPathParam = /(\/):([^\/?#]+)/g;
 
 // 参数需要为数组的字段
@@ -47,56 +46,8 @@ export default class AxiosExpand extends Axios {
   }
 
   _bind() {
-    this.request = this._request.bind(this);
-    this.api = this._api.bind(this);
-  }
-
-  /**
-   * 通过查找请求配置列表发起请求
-   * @param {Object|String} options - 请求配置参数
-   * 1. 为Object时基本等同 request 的配置参数。唯一新增了一个"api"字段表示请求配置列表的键。
-   * 2. 为String时则为请求配置列表的键。
-   * 3. 为String时如果请求配置列表中无法找到则尝试把其直接解析为请求路径
-   *
-   * @param {String} options.api - 请求配置列表的键。
-   *
-   * @param params - 请求参数。等同 request 的 params 参数
-   */
-  _api(options, params) {
-    let options_ = this._formatApiOptions(options);
-    if (options_) {
-      return this._request(options_, params);
-    } else {
-      return Promise.reject('api "' + options + '" is not found.');
-    }
-  }
-
-  _formatApiOptions(options) {
-    let apiOptions;
-    if (options) {
-      if (typeOf(options, "String")) {
-        options = {
-          api: options,
-        };
-      }
-      apiOptions = this._apis[options.api];
-      if (apiOptions) {
-        if (typeOf(apiOptions, "String")) {
-          apiOptions = {
-            url: apiOptions,
-          };
-        }
-      } else {
-        if (regIsPath.test(options.api)) {
-          apiOptions = {
-            url: options.api,
-          };
-        } else if (!options.url) {
-          options = undefined;
-        }
-      }
-    }
-    return mergeOptions(apiOptions, options);
+    // 现在api方法只是别名
+    this.api = this.request = this._request.bind(this);
   }
 
   /**
@@ -104,7 +55,11 @@ export default class AxiosExpand extends Axios {
    *
    * @param {Object|String} options - 完整请求配置参数或请求的地址。
    * 1. 完整包含axios的原生配置
-   * 2. 配置有多个来源且会进行合并。可能的来源和合并优先级：AxiosExpand.defaults < AxiosExpand(options) <  apisConfig < api(options)。
+   * 2. 为String时则为请求配置列表的键。
+   * 3. 为String时如果无法找到对应配置则会被视为请求路径
+   * 4. 配置有多个来源且会进行合并。可能的来源和合并优先级：AxiosExpand.defaults < AxiosExpand(options) <  apisConfig < api(options)。
+   *
+   * @param {String} options.api - 请求配置列表的键。
    *
    * @param {*|Function} options.local - 本地数据。
    * 1. 设置此参数后会跳过请求，直接resolve此参数设置的数据。
@@ -171,7 +126,7 @@ export default class AxiosExpand extends Axios {
    * @returns {Promise}
    */
   _request(options, params, method) {
-    options = this._formatRequestOptions(options, params, method);
+    options = this.generateOptions(options, params, method);
 
     // before
     if (options.before.length) {
@@ -268,6 +223,46 @@ export default class AxiosExpand extends Axios {
     return RP;
   }
 
+  // 从apis中查找配置
+  _getApiOptions(apiName) {
+    let apiOptions = this._apis[apiName];
+    if (typeOf(apiOptions, "String")) {
+      apiOptions = {
+        url: apiOptions,
+      };
+    }
+    return apiOptions;
+  }
+
+  /**
+   * 创建配置
+   * 1. 参数和request方法一致
+   * 2. 会从配置列表中查找并且合并、转换后得到的最终配置
+   * @param {Object|String} options
+   * @param {*} params
+   * @param {String} method
+   * @returns {Object} requestOptions
+   */
+  generateOptions(options, params, method) {
+    let apiOptions;
+    if (options) {
+      if (typeOf(options, "String")) {
+        apiOptions = this._getApiOptions(options);
+        if (!apiOptions) {
+          options = {
+            url: options,
+          };
+        }
+      }
+      if (options.api) {
+        apiOptions = this._getApiOptions(options.api);
+      }
+      options = mergeOptions(this.defaults, apiOptions, options);
+      options = this._formatRequestOptions(options, params, method);
+    }
+    return options || {};
+  }
+
   _pathParams({ url, params, data }) {
     if (params || data) {
       url = url.replace(regPathParam, function (rv, $1, $2) {
@@ -287,43 +282,33 @@ export default class AxiosExpand extends Axios {
     return url;
   }
 
-  // 格式化 统一参数
+  // 融合 params method 参数到 options
   _formatRequestOptions(options, params, method) {
-    if (typeOf(options, "String")) {
-      options = {
-        url: options,
-      };
-    }
-
-    const _options = mergeOptions(this.defaults, options);
-
     if (typeOf(method, "String")) {
-      _options.method = method;
+      options.method = method;
     }
-
     if (params) {
-      switch (toUpperCase(_options.method)) {
+      switch (toUpperCase(options.method)) {
         case "POST":
-          _options.data =
-            typeOf(_options.data, "Object") && typeOf(params, "Object")
-              ? merge(_options.data, params)
+          options.data =
+            typeOf(options.data, "Object") && typeOf(params, "Object")
+              ? merge(options.data, params)
               : params;
           break;
         default:
           if (typeOf(params, "Object")) {
-            _options.params = merge(_options.params, params);
+            options.params = merge(options.params, params);
           }
           break;
       }
     }
-
-    return _options;
+    return options;
   }
 
   // 转换 data 为requestType对应的格式
   _transformData(options) {
     let contentType,
-      data = options.originalData = options.data;
+      data = (options.originalData = options.data);
     switch (toLowerCase(options.requestType)) {
       case "form-url":
         contentType = "application/x-www-form-urlencoded;charset=utf-8";
@@ -355,15 +340,22 @@ export default class AxiosExpand extends Axios {
 
   // 根据options的关键数据生成一个对应的id
   _getOptionsId(options) {
-    let { url, params, method } = options;
-    if (params) {
-      params = Object.keys(params)
-        .sort()
-        .map((k) => k + "=" + params[k])
-        .join("&");
-    }
+    let { url, params, originalData, method } = options;
+
+    params = {
+      ...params,
+      ...(typeOf(originalData, "Object") && originalData),
+    };
+
+    params = Object.keys(params)
+      .sort()
+      .map((k) => k + "=" + params[k])
+      .join("&");
+
     if (!method) {
-      method = "get";
+      method = "GET";
+    } else {
+      method = method.toUpperCase();
     }
     return url + "|" + params + "|" + method;
   }

@@ -1,5 +1,11 @@
 ## 更新说明
 
+*2021-12-01*
+
+- 重构：**`api` 和 `request` 方法进行了合并。`request` 方法现在可以查找接口配置列表中的配置了。而 `api` 方法只是做为别名使用**
+- 新增： `generateOptions` 方法用于获取配置。并且优化了配置获取的逻辑。
+- 优化：POST请求下本地缓存的id生成逻辑
+
 *2021-11-16*
 
 - 新增：`before` 处理函数返回 `false` 会中止当前请求
@@ -9,22 +15,22 @@
 
 *2021-10-29*
 
-- 移除`pathParamsReg`参数新增`pathParam`参数。需要自定义路径参数解析使用`before`参数实现
-- 修复某些情况下误报 option.url 参数未设置的bug
-- 优化`requestType`参数的设置逻辑
+- 移除: `pathParamsReg`参数新增`pathParam`参数。需要自定义路径参数解析使用`before`参数实现
+- 修复: 某些情况下误报 option.url 参数未设置的bug
+- 优化: `requestType`参数的设置逻辑
 
 *2021-10-25*
 
-- 修复模块导出错误的bug
-- 修复merge函数以及copy函数逻辑错误导致的报错
-- 优化配置参数
+- 修复: 模块导出错误的bug
+- 修复: merge函数以及copy函数逻辑错误导致的报错
+- 优化: 配置参数
     - **优化了`before` `after` `transformInstance`参数。多个配置来源都设置了这些参数的时候会依次全部调用**
     - 删除了`transformBefore`参数。使用`before`参数代替
     - 删除了`transformAfter`参数。使用`after`参数代替
 
 ## 简介
 
-对axios进行了如：配置式列表路径、本地数据、缓存数据、路径参数、GET，POST参数传递自动判断、请求前后拦截器增强，请求体类型设置等增强封装。
+对axios进行了如：配置式请求路径、本地数据、缓存数据、路径参数、GET，POST参数传递自动判断、请求前后拦截器增强，请求体类型设置等增强封装。
 
 ## 接口说明
 
@@ -121,6 +127,21 @@
    * @param params - 请求参数。等同 request 的 params 参数
 */
 _api(options, params) {....}
+```
+
+- `generateOptions(options[, params[, method]])`
+
+```js
+/**
+   * 创建配置
+   * 1. 参数和request方法一致
+   * 2. 会从配置列表中查找并且合并、转换后得到的最终配置
+   * @param {Object|String} options
+   * @param {*} params
+   * @param {String} method
+   * @returns {Object} requestOptions
+*/
+generateOptions(options, params, method) {....}
 ```
 
 

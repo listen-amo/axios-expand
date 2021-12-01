@@ -1,7 +1,7 @@
 {
   "name": "axios-expand",
-  "version": "1.0.6",
-  "description": "axios增强",
+  "version": "1.0.7",
+  "description": "axios增强。配置式请求路径、本地数据、缓存数据、路径参数、GET，POST参数传递自动判断、请求前后拦截器增强，请求体类型设置等增强封装",
   "main": "dist/axios-expand.js",
   "module": "dist/axios-expand.module.js",
   "scripts": {

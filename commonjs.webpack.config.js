@@ -3,8 +3,7 @@ const { merge } = require('webpack-merge');
 module.exports = merge(base, {
   output: {
     library: {
-      export: "default",
-      type: "commonjs2"
+      type: "commonjs"
     }
   },
 })

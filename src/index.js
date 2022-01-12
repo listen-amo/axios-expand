@@ -1,2 +1,2 @@
-import AxiosExpand from "./axios-expand.js";
-export default AxiosExpand;
+export * from "./axios-expand.js";
+export { default } from "./axios-expand.js";

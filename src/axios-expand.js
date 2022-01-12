@@ -21,10 +21,10 @@ const regCTJson = /application\/json/, // content-type=json
   regPathParam = /(\/):([^\/?#]+)/g;
 
 // 参数需要为数组的字段
-const optionsArrayFileds = ["before", "after", "transformInstance"];
+const optionsArrayFields = ["before", "after", "transformInstance"];
 
-function mergeOptions(...args) {
-  return merge(...args, mergeFieldToArray(args, optionsArrayFileds));
+export function mergeOptions(...args) {
+  return merge(...args, mergeFieldToArray(args, optionsArrayFields));
 }
 
 export default class AxiosExpand extends Axios {

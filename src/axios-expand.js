@@ -153,23 +153,25 @@ export default class AxiosExpand extends Axios {
       if (options.pathParam) {
         options.url = this._pathParams(options);
       }
-    } else {
+    } else if(!("local" in options)){
       errorMsg("options.url is required.");
       return Promise.reject(null);
     }
 
     let RP, cache;
 
-    // local
     if ("local" in options) {
+      // 本地数据
       RP = Promise.resolve(this._getLocal(options));
     } else if (options.cache && (cache = this._getCache(options))) {
+      // 缓存数据
       RP = cache;
     } else {
+      // 正常请求
       RP = super.request(options);
     }
 
-    // cache
+    // 设置缓存
     if (options.cache && !cache) {
       this._setCatch(options, RP);
     }
@@ -197,8 +199,8 @@ export default class AxiosExpand extends Axios {
 
     // transformInstance
     if (options.transformInstance.length) {
-      RP = options.transformInstance.reduce(function (promise, handler) {
-        let rv = handler(promise);
+      RP = options.transformInstance.reduce((promise, handler) => {
+        let rv = handler.call(this, promise);
         if (isValue(rv)) {
           if (!typeOf(rv, "Promise")) {
             rv = Promise.resolve(rv);
@@ -245,7 +247,7 @@ export default class AxiosExpand extends Axios {
    */
   generateOptions(options, params, method) {
     let apiOptions;
-    if (options) {
+    if (options && !options.$axiosGenerateOptions) {
       if (typeOf(options, "String")) {
         apiOptions = this._getApiOptions(options);
         if (!apiOptions) {
@@ -259,6 +261,8 @@ export default class AxiosExpand extends Axios {
       }
       options = mergeOptions(this.defaults, apiOptions, options);
       options = this._formatRequestOptions(options, params, method);
+      // 用于判断options是否已经经过处理
+      options.$axiosGenerateOptions = true;
     }
     return options || {};
   }
@@ -340,8 +344,14 @@ export default class AxiosExpand extends Axios {
 
   // 根据options的关键数据生成一个对应的id
   _getOptionsId(options) {
-    let { url, params, originalData, method } = options;
-
+    let { url, params, originalData, method, cache } = options;
+    if (typeof cache === "function") { // 自定义 optionsId
+      const optionsId = cache(options);
+      if (!optionsId) { 
+        throw "The custom cache ID cannot be empty.";
+      }
+      return optionsId;
+    }
     params = {
       ...params,
       ...(typeOf(originalData, "Object") && originalData),
@@ -363,7 +373,7 @@ export default class AxiosExpand extends Axios {
   _getLocal(options) {
     // 兼容 response 对象
     return {
-      data: typeOf(options.local, "Function") ? options.local() : options.local,
+      data: typeOf(options.local, "Function") ? options.local(options) : options.local,
       config: options,
       headers: {},
       request: {},
